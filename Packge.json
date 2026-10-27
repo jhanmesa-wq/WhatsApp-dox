@@ -1,0 +1,15 @@
+{
+  "name": "bot-creditos-mongo",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.9",
+    "express": "^4.18.2",
+    "pino": "^8.19.0",
+    "fs-extra": "^11.2.0",
+    "mongoose": "^8.0.0"
+  }
+}
