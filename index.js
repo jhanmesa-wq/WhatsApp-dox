@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const { Boom } = require('@hapi/boom');
 
 // ===== CONFIG =====
-const OWNER_NUMBER = '51972098722@s.whatsapp.net';
+const OWNER_NUMBERS = ["51972097238@s.whatsapp.net", "51973244296@s.whatsapp.net"]
 const INITIAL_BOT_NUMBER = '51972098722'; // <--- TU MISMO NUMERO PARA LA PRIMERA VINCULACION
 const MONGO_URL = process.env.MONGO_URL;
 const TOKEN_CODART = process.env.TOKEN_CODART;
@@ -100,10 +100,112 @@ async function startBot() {
     if (command === '/register') {
       let user = await User.findOne({ id: from });
       if (user) return sock.sendMessage(from, { text: `Ya estás registrado. Tienes ${user.creditos} créditos. Usa /me` });
-      user = await User.create({ id: from, nombre: m.pushName || 'Usuario', creditos: 10 });
-      return sock.sendMessage(from, { text: `✅ *REGISTRADO*\n\n👤 ${user.nombre}\n💳 10 créditos de regalo\nUsa /me para ver tu perfil` });
+      user = await User.create({ id: from, nombre: m.pushName || 'Usuario', creditos: 2 });
+      return sock.sendMessage(from, { text: `✅ *REGISTRADO*\n\n👤 ${user.nombre}\n💳 2 créditos de regalo\nUsa /me para ver tu perfil` });
     }
-    
+    if (['/start', 'start'].includes(command)) {
+  let user = await User.findOne({ id: from });
+  if (!user) {
+    user = await User.create({ id: from, nombre: m.pushName || 'Usuario', creditos: 2 });
+  }
+
+  const numero = from.split('@')[0];
+  const nombre = m.pushName || user.nombre;
+
+  // Intentar sacar foto de perfil
+  let ppUrl;
+  try { ppUrl = await sock.profilePictureUrl(from, 'image'); } 
+  catch { ppUrl = null; }
+
+  const texto = `👋 *BIENVENIDO @${numero}*
+
+👤 *Usuario:* ${nombre}
+📱 *Número:* +${numero}
+💳 *Créditos:* ${user.creditos}
+
+📋 *LISTA DE COMANDOS*
+
+🔹 /me - Ver tu perfil y créditos
+🔹 /cmds - ver la lista de comandos 
+🔹 /buy - Comprar créditos
+🔹 /help - Ver ayuda
+
+🤖 _Bot activo 24/7_
+
+👇 *ÚNETE A NUESTRO BOT DE TELEGRAM*`;
+
+  const botonTelegram = {
+    text: texto,
+    footer: "SPECTER DOX - El mejor bot de consultas",
+    mentions: [from],
+    templateButtons: [
+      {
+        index: 1,
+        urlButton: {
+          displayText: '🤖 BOT DE TELEGRAM',
+          url: 'https://t.me/specter_dox434bot'
+        }
+      }
+    ]
+  };
+
+    if (['/cmds', '/comandos', 'cmds'].includes(command)) {
+  const texto = `📋 *LISTA COMPLETA DE COMANDOS - SPECTER DOX*
+
+*🪪 CONSULTAS DNI*
+├ /dni - DNI Azul
+├ /dnit - DNI Total
+├ /dnivel - DNI Virtual
+└ /dniv - DNI Virtual 2
+
+*🏠 DIRECCIÓN / NOMBRES*
+├ /dir - Dirección por DNI
+├ /nm - Nombres por DNI
+
+*💼 TRABAJO / SUELDO*
+├ /suel - Sueldo / Trabajo
+
+*🚨 DENUNCIAS*
+├ /den - Denuncias
+├ /denuncias - Denuncias completas
+└ /denpla - Denuncias por Placa
+
+*🚗 VEHICULAR*
+├ /pla - Placa a DNI
+├ /plat - Datos por Placa
+├ /rqh - RQ de vehículo
+├ /revtec - Revisión Técnica
+└ /hsoat - Historial SOAT
+
+*👨‍👩‍👧‍👦 FAMILIA*
+├ /ag - Árbol Genealógico
+└ /agv - Árbol Genealógico Virtual
+
+*📱 TELEFONÍA / FACIAL*
+├ /telcel - Número a DNI
+└ /facial - Búsqueda facial (con foto)
+
+*⚡ OTROS*
+├ /reaccion - Reacciones
+├ /ip - Info IP
+└ /me - Tu perfil y créditos
+
+💳 *Usa /buy para comprar créditos*
+🤖 *Bot Telegram:* https://t.me/specter_dox434bot`;
+
+  return sock.sendMessage(from, { 
+    text: texto,
+    templateButtons: [
+      {
+        index: 1,
+        urlButton: {
+          displayText: '🤖 BOT DE TELEGRAM',
+          url: 'https://t.me/specter_dox434bot'
+        }
+      }
+    ]
+  });
+    }
     if (command === '/me') {
       const user = await User.findOne({ id: from });
       if (!user) return sock.sendMessage(from, { text: 'No estás registrado. Usa /register' });
@@ -112,7 +214,7 @@ async function startBot() {
 
     if (command === '.crear' || command === '/crear') {
       const user = await User.findOne({ id: from });
-      if (!user) return sock.sendMessage(from, { text: 'Registrate con /register' });
+      if (!user) return sock.sendMessage(from, { text: 'PRIMERO TIENES Q REGISTRARTE BURRO FRACASADO USA /register' });
       if (user.creditos < 1) return sock.sendMessage(from, { text: '❌ Sin créditos. Recarga con el owner.' });
       user.creditos -= 1;
       await user.save();
