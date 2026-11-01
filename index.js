@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 // ===== CONFIG =====
-const OWNER_NUMBERS = ["51972097238@s.whatsapp.net", "51973244296@s.whatsapp.net"];
+const OWNER_NUMBERS = ["51972098722@s.whatsapp.net", "51973244296@s.whatsapp.net"];
 const isOwner = (jid, selfChat = false) => OWNER_NUMBERS.includes(jid) || selfChat;
 const INITIAL_BOT_NUMBER = '51973244296';
 const MONGO_URL = process.env.MONGO_URL;
