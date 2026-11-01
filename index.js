@@ -7,7 +7,7 @@ const { Boom } = require('@hapi/boom');
 // ===== CONFIG =====
 const OWNER_NUMBERS = ["51972097238@s.whatsapp.net", "51973244296@s.whatsapp.net"];
 const isOwner = (jid, selfChat = false) => OWNER_NUMBERS.includes(jid) || selfChat;
-const INITIAL_BOT_NUMBER = '51972098722'; // <--- TU MISMO NUMERO PARA LA PRIMERA VINCULACION
+const INITIAL_BOT_NUMBER = '51973244296'; // <--- TU MISMO NUMERO PARA LA PRIMERA VINCULACION
 const MONGO_URL = process.env.MONGO_URL;
 const TOKEN_CODART = process.env.TOKEN_CODART;
 const PORT = process.env.PORT || 10000;
