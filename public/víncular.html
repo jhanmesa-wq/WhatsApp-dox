@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f5f6f8">
+  <title>Vincular WhatsApp | SPECTER DOX</title>
+  <style>
+    :root{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#182230;background:#f5f6f8}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px}
+    .wrap{width:min(100%,510px)}.brand{font-size:13px;letter-spacing:.16em;font-weight:800;color:#526174;margin:0 0 18px}
+    .card{background:#fff;border:1px solid #e4e8ee;border-radius:20px;padding:30px;box-shadow:0 18px 55px #1d293910}
+    h1{font-size:27px;line-height:1.2;margin:0 0 10px;letter-spacing:-.04em}
+    .lead{color:#657184;font-size:14px;line-height:1.65;margin:0 0 25px}
+    label{display:block;font-weight:700;font-size:13px;margin:0 0 9px}
+    .phone{display:flex;align-items:center;border:1px solid #d8dee7;border-radius:12px;padding:0 14px;background:#fff}
+    .plus{font-weight:700;color:#697586}.phone input{width:100%;border:0;outline:0;padding:15px 10px;font:inherit;font-size:16px;min-width:0}
+    .hint{font-size:12px;color:#7b8796;margin:8px 0 18px}
+    button{width:100%;border:0;border-radius:12px;background:#172333;color:#fff;font-size:15px;font-weight:700;padding:15px;cursor:pointer}
+    button:disabled{opacity:.55;cursor:wait}.status{margin-top:20px;padding:15px;border-radius:12px;background:#f3f5f8;color:#485568;font-size:13px;line-height:1.55;display:none}
+    .status.show{display:block}.code{font-size:28px;letter-spacing:.12em;font-weight:800;color:#172333;text-align:center;padding:14px 8px;margin:10px 0;background:#fff;border:1px dashed #b8c2cf;border-radius:10px;user-select:all}
+    .steps{padding-left:19px;margin:10px 0 0}.steps li{padding:3px 0}
+    .warning{font-size:12px;line-height:1.6;color:#778293;margin:18px 2px 0}
+    .footer{text-align:center;color:#8993a1;font-size:11px;margin:18px 0 0}
+    .error{color:#a12b2b;background:#fff1f1}.success{color:#17633c;background:#eef9f1}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <p class="brand">SPECTER DOX · CONEXIÓN DE DISPOSITIVOS</p>
+    <section class="card">
+      <h1>Vincular WhatsApp</h1>
+      <p class="lead">Conecta tu propia cuenta de WhatsApp para utilizar el bot desde una sesión independiente.</p>
+      <form id="pairForm">
+        <label for="phone">Número de teléfono internacional</label>
+        <div class="phone"><span class="plus">+</span><input id="phone" name="numero" type="tel" inputmode="numeric" autocomplete="tel" placeholder="51912345678" minlength="8" maxlength="15" required></div>
+        <p class="hint">Incluye el código de país. Puedes escribirlo con o sin el signo +.</p>
+        <button id="submit" type="submit">Generar código de vinculación</button>
+      </form>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+      <p class="warning">Importante: solo introduce un número que controles. El código permite vincular una sesión de WhatsApp. Nunca compartas el código con otras personas. La confirmación se enviará cuando la conexión se complete.</p>
+    </section>
+    <p class="footer">SPECTER DOX · Servicio de vinculación</p>
+  </main>
+<script>
+(() => {
+  const form = document.getElementById('pairForm');
+  const phone = document.getElementById('phone');
+  const submit = document.getElementById('submit');
+  const statusBox = document.getElementById('status');
+  let pollTimer = null;
+  let activeToken = null;
+
+  function show(message, type='') {
+    statusBox.className = 'status show ' + type;
+    statusBox.innerHTML = message;
+  }
+  function cleanNumber(value) {
+    return value.replace(/[^\d]/g, '');
+  }
+  async function checkStatus() {
+    if (!activeToken) return;
+    try {
+      const response = await fetch('/api/vincular/' + encodeURIComponent(activeToken), {cache:'no-store'});
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'No se pudo consultar el estado.');
+      if (data.status === 'esperando' && data.code) {
+        show('<strong>' + data.message + '</strong><div class="code">' + data.code + '</div><strong>En tu teléfono:</strong><ol class="steps"><li>Abre WhatsApp.</li><li>Entra en Dispositivos vinculados.</li><li>Selecciona Vincular un dispositivo.</li><li>Elige vincular con número de teléfono e introduce el código.</li></ol>');
+      } else if (data.status === 'conectado') {
+        clearInterval(pollTimer);
+        show('<strong>✓ ' + data.message + '</strong>', 'success');
+        submit.disabled = false;
+        submit.textContent = 'Vincular otro número';
+        activeToken = null;
+      } else if (data.status === 'error') {
+        clearInterval(pollTimer);
+        show(data.message, 'error');
+        submit.disabled = false;
+        submit.textContent = 'Intentar nuevamente';
+        activeToken = null;
+      } else {
+        show(data.message || 'Preparando código...');
+      }
+    } catch (error) {
+      clearInterval(pollTimer);
+      show(error.message, 'error');
+      submit.disabled = false;
+      submit.textContent = 'Intentar nuevamente';
+      activeToken = null;
+    }
+  }
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    clearInterval(pollTimer);
+    const numero = cleanNumber(phone.value);
+    if (!/^\d{8,15}$/.test(numero)) {
+      show('Escribe un número internacional válido, de 8 a 15 dígitos.', 'error');
+      return;
+    }
+    submit.disabled = true;
+    submit.textContent = 'Preparando...';
+    show('Creando una sesión segura. No cierres esta página.');
+    try {
+      const response = await fetch('/api/vincular', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({numero})
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'No se pudo iniciar la solicitud.');
+      activeToken = data.token;
+      await checkStatus();
+      if (activeToken) pollTimer = setInterval(checkStatus, 2000);
+      // Caducidad visual del proceso.
+      setTimeout(() => {
+        if (activeToken) {
+          clearInterval(pollTimer);
+          show('La solicitud ha tardado demasiado. Recarga la página e inténtalo nuevamente.', 'error');
+          submit.disabled = false;
+          submit.textContent = 'Intentar nuevamente';
+          activeToken = null;
+        }
+      }, 10 * 60 * 1000);
+    } catch (error) {
+      show(error.message, 'error');
+      submit.disabled = false;
+      submit.textContent = 'Intentar nuevamente';
+    }
+  });
+})();
+</script>
+</body>
+  </html>
+  
