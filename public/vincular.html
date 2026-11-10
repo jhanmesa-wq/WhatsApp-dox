@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f5f6f8">
+  <title>Vincular WhatsApp | SPECTER DOX</title>
+  <style>
+    :root{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#182230;background:#f5f6f8}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px}
+    .wrap{width:min(100%,510px)}.brand{font-size:13px;letter-spacing:.16em;font-weight:800;color:#526174;margin:0 0 18px}
+    .card{background:#fff;border:1px solid #e4e8ee;border-radius:20px;padding:30px;box-shadow:0 18px 55px #1d293910}
+    h1{font-size:27px;line-height:1.2;margin:0 0 10px;letter-spacing:-.04em}
+    .lead{color:#657184;font-size:14px;line-height:1.65;margin:0 0 25px}
+    label{display:block;font-weight:700;font-size:13px;margin:0 0 9px}
+    .phone{display:flex;align-items:center;border:1px solid #d8dee7;border-radius:12px;padding:0 14px;background:#fff}
+    .plus{font-weight:700;color:#697586}.phone input{width:100%;border:0;outline:0;padding:15px 10px;font:inherit;font-size:16px;min-width:0}
+    .hint{font-size:12px;color:#7b8796;margin:8px 0 18px}
+    button{width:100%;border:0;border-radius:12px;background:#172333;color:#fff;font-size:15px;font-weight:700;padding:15px;cursor:pointer}
+    button:disabled{opacity:.55;cursor:wait}.status{margin-top:20px;padding:15px;border-radius:12px;background:#f3f5f8;color:#485568;font-size:13px;line-height:1.55;display:none}
+    .status.show{display:block}.code{font-size:28px;letter-spacing:.12em;font-weight:800;color:#172333;text-align:center;padding:14px 8px;margin:10px 0;background:#fff;border:1px dashed #b8c2cf;border-radius:10px;user-select:all}
+    .steps{padding-left:19px;margin:10px 0 0}.steps li{padding:3px 0}
+    .warning{font-size:12px;line-height:1.6;color:#778293;margin:18px 2px 0}
+    .footer{text-align:center;color:#8993a1;font-size:11px;margin:18px 0 0}
+    .error{color:#a12b2b;background:#fff1f1}.success{color:#17633c;background:#eef9f1}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <p class="brand">SPECTER DOX · CONEXIÓN DE DISPOSITIVOS</p>
+    <section class="card">
+      <h1>Vincular WhatsApp</h1>
+      <p class="lead">Inicia la vinculación desde tu propia cuenta de WhatsApp. El bot comprobará que el número que escribes coincide con el remitente del mensaje.</p>
+      <form id="pairForm">
+        <label for="phone">Número de teléfono internacional</label>
+        <div class="phone"><span class="plus">+</span><input id="phone" name="numero" type="tel" inputmode="numeric" autocomplete="tel" placeholder="51912345678" minlength="8" maxlength="15" required></div>
+        <p class="hint">Incluye el código de país. Puedes escribirlo con o sin el signo +.</p>
+        <button id="submit" type="submit">Continuar en WhatsApp</button>
+      </form>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+      <p class="warning">Por seguridad, el código no se genera desde una página pública. Debes enviar la solicitud desde el mismo número que deseas vincular. Nunca compartas el código de emparejamiento.</p>
+    </section>
+    <p class="footer">SPECTER DOX · Servicio de vinculación</p>
+  </main>
+<script>
+(() => {
+  const form = document.getElementById('pairForm');
+  const phone = document.getElementById('phone');
+  const submit = document.getElementById('submit');
+  const statusBox = document.getElementById('status');
+
+  function show(message, type = '') {
+    statusBox.className = 'status show ' + type;
+    statusBox.textContent = message;
+  }
+
+  function cleanNumber(value) {
+    return String(value || '').replace(/\D/g, '');
+  }
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const numero = cleanNumber(phone.value);
+    if (!/^\d{8,15}$/.test(numero)) {
+      show('Introduce un número internacional válido, con código de país y entre 8 y 15 dígitos.', 'error');
+      return;
+    }
+
+    submit.disabled = true;
+    submit.textContent = 'Preparando WhatsApp...';
+    try {
+      const response = await fetch('/config.json', { cache: 'no-store' });
+      if (!response.ok) throw new Error('No se pudo cargar la configuración del bot.');
+      const config = await response.json();
+      const botNumber = cleanNumber(config.botNumber);
+      if (!/^\d{8,15}$/.test(botNumber)) throw new Error('El número del bot no está configurado correctamente.');
+
+      const message = `/code ${numero}`;
+      const url = `https://wa.me/${botNumber}?text=${encodeURIComponent(message)}`;
+      show('Se abrirá WhatsApp. Envía el mensaje desde el mismo número que deseas vincular. El bot comprobará que eres el titular antes de generar el código.');
+      window.location.href = url;
+      submit.disabled = false;
+      submit.textContent = 'Continuar en WhatsApp';
+    } catch (error) {
+      show(error.message || 'No se pudo iniciar el proceso.', 'error');
+      submit.disabled = false;
+      submit.textContent = 'Intentar nuevamente';
+    }
+  });
+})();
+</script>
+</body>
+</html>
